@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from .crud import *
 from .database import engine, SessionLocal, Base
+from .schemas import *
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
 
@@ -30,14 +31,32 @@ async def root():
 
 @app.get('/servants')
 async def root(index : int = None, db : Session = Depends(get_db)):
+    service = ServantService(db)
     if index == None:
-        return [servant for servant in get_servants(db)]
-    return [get_servants(db)[index]]
+        return [servant for servant in service.get_all()]
+    return service.get(index)
 
 @app.post('/create_servant')
 async def root(name: str, class_name : str, db : Session = Depends(get_db)):
+    service = ServantService(db)
     try:
-        servant = create_servant(db, name, class_name)
+        servant = service.create(name, class_name)
         return {"message": f"Created {servant}"}
     except ValueError as e:
         raise HTTPException(400, str(e))
+    
+@app.put('/servant_update/{servant_id}')
+async def root(servant_id : int, s : ServantUpdate, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    try:
+        servant = service.update(servant_id, s.name, s.class_name, s.ascension_level, s.level)
+        return {"message": f'Updated {servant}'}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    
+@app.get('/contracts')
+async def root(index : int = None, db : Session = Depends(get_db)):
+    service = ContractService(db)
+    if index == None:
+        return [contract for contract in service.get_all()]
+    return service.get(index)
