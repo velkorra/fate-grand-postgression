@@ -6,12 +6,16 @@ class ServantService:
     def __init__(self, db : Session):
         self.db = db
     
-    def get(self, id):
+    def get(self, id : int) -> Servant:
         return self.db.query(Servant).get(id)
     
     def get_all(self):
         return self.db.query(Servant).all()
-
+    
+    def get_details(self, id : int):
+        localizations = self.get(id).localizations        
+        return {localization.language: localization for localization in localizations}
+        
     def create(self, name : str, class_name : str):
         servant = Servant(name=name, class_name=class_name)
         try:
@@ -49,3 +53,13 @@ class ContractService:
     
     def get_all(self):
         return self.db.query(Contract).all()
+
+class MasterService:
+    def __init__(self, db : Session):
+        self.db = db
+    
+    def get(self, id):
+        return self.db.query(Master).get(id)
+    
+    def get_all(self):
+        return self.db.query(Master).all()

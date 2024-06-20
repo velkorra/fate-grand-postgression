@@ -60,3 +60,17 @@ async def root(index : int = None, db : Session = Depends(get_db)):
     if index == None:
         return [contract for contract in service.get_all()]
     return service.get(index)
+
+@app.get('/masters')
+async def root(index : int = None, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    if index == None:
+        return [master for master in service.get_all()]
+    return service.get(index)
+
+@app.get('/localization/{servant_id}')
+async def root(servant_id : int, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    # if index == None:
+    #     return [master for master in service.get_details(servant_id)]
+    return service.get_details(servant_id)
