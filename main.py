@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from .crud import *
 from .database import engine, SessionLocal, Base
+from sqlalchemy import text
 from .schemas import *
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI()
@@ -24,6 +25,11 @@ def get_db():
     finally:
         db.close()
         
+@app.get('/sql')
+async def root():
+    a = engine.connect()
+    with open('queries/join.sql', encoding='utf-8') as f:
+        return str(a.execute(text(f.read())).fetchall())
 
 @app.get("/")
 async def root():
@@ -74,3 +80,22 @@ async def root(servant_id : int, db : Session = Depends(get_db)):
     # if index == None:
     #     return [master for master in service.get_details(servant_id)]
     return service.get_details(servant_id)
+
+@app.get('/localization')
+async def root(servant_id : int = None, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    # if index == None:
+    #     return [master for master in service.get_details(servant_id)]
+    return service.join(servant_id)
+
+@app.get('/skill/{servant_id}')
+async def root(servant_id : int = None, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    # if index == None:
+    #     return [master for master in service.get_details(servant_id)]
+    return service.get_skills(servant_id)
+
+@app.post('/localization')
+async def root(servant_id : int = None, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    service.add_localization()
