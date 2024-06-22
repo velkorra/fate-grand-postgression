@@ -11,4 +11,6 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 class Base(DeclarativeBase):
-    pass
+    def _repr(self, *fields):
+        attrs = ', '.join(f'{field}={repr(getattr(self, field))}' for field in fields)
+        return f'<{self.__class__.__name__}({attrs})>'

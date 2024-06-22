@@ -9,8 +9,8 @@ class Master(Base):
     nickname : Mapped[str] = mapped_column(String, nullable=False)
     level : Mapped[str] = mapped_column(Integer, nullable=False)
     date_registered : Mapped[DateTime] = mapped_column(DateTime, nullable=False)
-    contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="master")
     display_name : Mapped[str] = mapped_column(String)
+    contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="master")
     def __repr__(self):
         return f'<Master(id={self.id}, nickname={self.nickname})>'
 
@@ -29,17 +29,18 @@ class Servant(Base):
     localizations : Mapped[List["ServantLocalization"]] = relationship("ServantLocalization", back_populates="servant")
     aliases : Mapped[List["Alias"]] = relationship("Alias", back_populates="servant")
     contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="servant")
-    skills : Mapped[List["ServantSkill"]] = relationship("ServantSkill", back_populates="servant", lazy="joined")
+    skills : Mapped[List["ServantSkill"]] = relationship("ServantSkill", back_populates="servant", lazy="select")
 
     def __repr__(self):
-        return f'<Servant(id={self.id}, class_name={self.class_name}, name={self.name}, ascension_level={self.ascension_level}, level={self.level})>'
+        return self._repr('id', 'class_name', 'name', 'ascension_level', 'level', 'state', 'alignment', 'gender')
     def __str__(self):
         return f'The servant {self.name} of {self.class_name} class'
 
 class ServantPicture(Base):
     __tablename__ = "servant_picture"
-    id : Mapped[int] = mapped_column(Integer, primary_key=True)
-
+    servant_id : Mapped[int] = mapped_column(Integer, primary_key=True)
+    grade : Mapped[int] = mapped_column(Integer, primary_key=True)
+    image : Mapped[str] = mapped_column(String)
 
     
 class Alias(Base):
@@ -64,9 +65,8 @@ class NoblePhantasm(Base):
     
 class Contract(Base):
     __tablename__ = "contract"
-    id : Mapped[int] = mapped_column(Integer, primary_key=True)
-    master_id : Mapped[int] = mapped_column(Integer, ForeignKey("master.id"), nullable=False)
-    servant_id : Mapped[int] = mapped_column(Integer, ForeignKey("servant.id"), nullable=False)
+    master_id : Mapped[int] = mapped_column(Integer, ForeignKey("master.id"), primary_key=True)
+    servant_id : Mapped[int] = mapped_column(Integer, ForeignKey("servant.id"), primary_key=True)
     status : Mapped[str] = mapped_column(String, nullable=False)
     start_date : Mapped[DateTime] = mapped_column(DateTime)
     end_date : Mapped[DateTime] = mapped_column(DateTime)
