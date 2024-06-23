@@ -7,8 +7,8 @@ class Master(Base):
     __tablename__ = "master"
     id : Mapped[int] = mapped_column(Integer, primary_key=True)
     nickname : Mapped[str] = mapped_column(String, nullable=False)
-    level : Mapped[str] = mapped_column(Integer, nullable=False)
-    date_registered : Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    level : Mapped[str] = mapped_column(Integer, nullable=False, server_default='')
+    date_registered : Mapped[DateTime] = mapped_column(DateTime, nullable=False, server_default='')
     display_name : Mapped[str] = mapped_column(String)
     contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="master")
     def __repr__(self):
@@ -19,9 +19,9 @@ class Servant(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     class_name: Mapped[str] = mapped_column("class", String, nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    ascension_level: Mapped[int] = mapped_column(Integer, nullable=False)
-    level: Mapped[int] = mapped_column(Integer, nullable=False)
-    state : Mapped[str] = mapped_column(String)
+    ascension_level: Mapped[int] = mapped_column(Integer, server_default='')
+    level: Mapped[int] = mapped_column(Integer, server_default='')
+    state : Mapped[str] = mapped_column(String, server_default='')
     alignment : Mapped[str] = mapped_column(String)
     gender : Mapped[int] = mapped_column(String)
     
