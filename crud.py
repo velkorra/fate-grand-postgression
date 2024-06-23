@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import IntegrityError, DataError
+from psycopg2.errors import CheckViolation, UniqueViolation
 from .models import *
 from .schemas import *
 
@@ -46,7 +47,7 @@ class ServantService:
             raise ValueError("Invalid data: " + str(e.orig)) from e
 
     def update(self, id: int, s: ServantUpdate):
-        servant : Servant = self.db.query(Servant).get(id)
+        servant = self.get(id)
         if s.name:
             servant.name = s.name
         if s.class_name:
@@ -132,9 +133,60 @@ class ServantService:
         servant = self.get(id)
         return servant.skills
         
+class MasterService:
+    def __init__(self, db : Session):
+        self.db = db
     
+    def get(self, id) -> Master | None:
+        return self.db.query(Master).get(id)
+    
+    def get_all(self):
+        return self.db.query(Master).all()    
 
-        
+    def create(self, master : MasterCreate):
+        new_master = Master(nickname=master.nickname, display_name=(master.display_name if master.display_name else master.nickname))
+        self.db.add(new_master)
+        try:
+            self.db.commit()
+            self.db.refresh(new_master)
+            return new_master
+        except IntegrityError as e:
+            self.db.rollback()
+            if isinstance(e.orig, UniqueViolation):
+                raise ValueError("Master with this nickname already exists")
+
+        except Exception as e:
+            self.db.rollback()
+            raise Exception(str(e))
+
+    def update(self, id : int, master : MasterUpdate):
+        m = self.get(id)
+        if not m:
+            raise ValueError("master does not exist")
+        if master.nickname:
+            m.nickname = master.nickname
+        if master.level:
+            m.level = master.level
+        if master.display_name:
+            m.display_name = master.display_name
+        try:
+            self.db.commit()
+            self.db.refresh(m)
+            return m
+        except IntegrityError as e:
+            self.db.rollback()
+            if isinstance(e.orig, UniqueViolation):
+                raise ValueError("Master with this nickname already exists")
+            if isinstance(e.orig, CheckViolation):
+                raise ValueError("Level must be positive")
+                
+    def delete(self, id : int):
+        m = self.get(id)
+        if not m:
+            raise ValueError("master does not exist")
+        self.db.delete(m)
+        self.db.commit()
+    
 class ContractService:
     def __init__(self, db : Session):
         self.db = db
@@ -144,13 +196,3 @@ class ContractService:
     
     def get_all(self):
         return self.db.query(Contract).all()
-
-class MasterService:
-    def __init__(self, db : Session):
-        self.db = db
-    
-    def get(self, id):
-        return self.db.query(Master).get(id)
-    
-    def get_all(self):
-        return self.db.query(Master).all()

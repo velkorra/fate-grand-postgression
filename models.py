@@ -13,6 +13,8 @@ class Master(Base):
     contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="master")
     def __repr__(self):
         return f'<Master(id={self.id}, nickname={self.nickname})>'
+    def __str__(self):
+        return f'{self.nickname} level {self.level}'
 
 class Servant(Base):
     __tablename__ = "servant"

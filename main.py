@@ -36,6 +36,7 @@ async def root():
 async def root():
     return {"message": "Hello World"}
 
+# Servants API -----------------------------------------------------
 @app.get('/servants')
 async def root(db : Session = Depends(get_db)):
     service = ServantService(db)
@@ -72,7 +73,47 @@ async def root(servant_id : int, s : ServantUpdate, db : Session = Depends(get_d
         return {"message": f'Updated {servant}'}
     except ValueError as e:
         raise HTTPException(400, str(e))
+
+
+# Masters API -----------------------------------------------------
+
+@app.get('/masters')
+async def root(db : Session = Depends(get_db)):
+    service = MasterService(db)
+    return service.get_all()
+
+@app.get('/masters/{master_id}')
+async def root(master_id : int, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    return service.get(master_id)
+
+@app.post('/masters/new')
+async def root(master : MasterCreate, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    try:
+        m = service.create(master)
+        return {"message": f"Created {m}"}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     
+@app.put('/masters/{master_id}')
+async def root(master_id: int, master : MasterUpdate, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    try:
+        m = service.update(master_id, master)
+        return f"updated {m}"
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+@app.delete('/masters/{master_id}')
+async def root(master_id : int, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    try:
+        service.delete(master_id)
+        return f"deleted {master_id} master"
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
 @app.get('/contracts')
 async def root(index : int = None, db : Session = Depends(get_db)):
     service = ContractService(db)
@@ -80,12 +121,7 @@ async def root(index : int = None, db : Session = Depends(get_db)):
         return [contract for contract in service.get_all()]
     return service.get(index)
 
-@app.get('/masters')
-async def root(index : int = None, db : Session = Depends(get_db)):
-    service = MasterService(db)
-    if index == None:
-        return [master for master in service.get_all()]
-    return service.get(index)
+
 
 @app.get('/localization/{servant_id}')
 async def root(servant_id : int, db : Session = Depends(get_db)):
