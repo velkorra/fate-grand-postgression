@@ -48,15 +48,8 @@ async def root(servant_id : int, db : Session = Depends(get_db)):
     service = ServantService(db)
     return service.get(servant_id)
 
-@app.delete("/servants/{servant_id}")
-async def root(servant_id : int, db : Session = Depends(get_db)):
-    s = ServantService(db)
-    try:
-        s.delete(servant_id)
-    except ValueError as e:
-        raise HTTPException(404, str(e))
         
-@app.post('/servants/new')
+@app.post('/servants')
 async def root(servant : ServantCreate, db : Session = Depends(get_db)):
     service = ServantService(db)
     try:
@@ -74,6 +67,13 @@ async def root(servant_id : int, s : ServantUpdate, db : Session = Depends(get_d
     except ValueError as e:
         raise HTTPException(400, str(e))
 
+@app.delete("/servants/{servant_id}")
+async def root(servant_id : int, db : Session = Depends(get_db)):
+    s = ServantService(db)
+    try:
+        s.delete(servant_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
 
 # Masters API -----------------------------------------------------
 
@@ -87,7 +87,7 @@ async def root(master_id : int, db : Session = Depends(get_db)):
     service = MasterService(db)
     return service.get(master_id)
 
-@app.post('/masters/new')
+@app.post('/masters')
 async def root(master : MasterCreate, db : Session = Depends(get_db)):
     service = MasterService(db)
     try:
@@ -113,15 +113,37 @@ async def root(master_id : int, db : Session = Depends(get_db)):
         return f"deleted {master_id} master"
     except ValueError as e:
         raise HTTPException(404, str(e))
+    
+# Contracts API -----------------------------------------------------
+
+@app.get('/contracts/all')
+async def root(db : Session = Depends(get_db)):
+    service = ContractService(db)
+    return service.get_all()
 
 @app.get('/contracts')
-async def root(index : int = None, db : Session = Depends(get_db)):
+async def root(servant_id : int, master_id: int, db : Session = Depends(get_db)):
     service = ContractService(db)
-    if index == None:
-        return [contract for contract in service.get_all()]
-    return service.get(index)
+    service.get(servant_id, master_id)
+
+@app.post('/contracts')
+async def root(contract : ContractCreate, db : Session = Depends(get_db)):
+    service = ContractService(db)
+    try:
+        new_contract = service.create(contract)
+        return {f"created contract between servant {contract.servant_id} and master {contract.master_id}": new_contract}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+        
+
+# @app.delete('/contracts/')
+# async def root(servant_id : int, master_id: int, db : Session = Depends(get_db)):
+#     service = ContractService(db)
+#     service.delete(servant_id, master_id)
+    
 
 
+    
 
 @app.get('/localization/{servant_id}')
 async def root(servant_id : int, db : Session = Depends(get_db)):

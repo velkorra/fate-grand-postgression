@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, aliased
-from sqlalchemy.exc import IntegrityError, DataError
-from psycopg2.errors import CheckViolation, UniqueViolation
+from sqlalchemy.exc import IntegrityError, DataError, InternalError
+from psycopg2.errors import CheckViolation, UniqueViolation, RaiseException, ForeignKeyViolation
 from .models import *
 from .schemas import *
 
@@ -191,8 +191,33 @@ class ContractService:
     def __init__(self, db : Session):
         self.db = db
     
-    def get(self, id):
-        return self.db.query(Contract).get(id)
+    def get(self, servant_id, master_id):
+        return self.db.query(Contract).filter(Contract.servant_id == servant_id and Contract.master_id == master_id)
     
     def get_all(self):
         return self.db.query(Contract).all()
+    
+    def create(self, contract_create : ContractCreate):
+        contract = Contract(servant_id = contract_create.servant_id, master_id = contract_create.master_id)
+        self.db.add(contract)
+        try:    
+            self.db.commit()
+            self.db.refresh(contract)
+            return contract
+        except IntegrityError as e:
+            self.db.rollback()
+            if isinstance(e.orig, UniqueViolation):
+                raise ValueError("Contract already exist")
+            if isinstance(e.orig, ForeignKeyViolation):
+                if "contract_master_id_fkey" in str(e):
+                    raise ValueError("Master does not exist")
+                else:
+                    raise ValueError("Servant does not exist")
+        except InternalError as e:
+            self.db.rollback()
+            if isinstance(e.orig, RaiseException):
+                raise ValueError("Servant already has an active contract")
+                
+
+    
+    

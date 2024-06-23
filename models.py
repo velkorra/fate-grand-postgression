@@ -69,10 +69,10 @@ class Contract(Base):
     __tablename__ = "contract"
     master_id : Mapped[int] = mapped_column(Integer, ForeignKey("master.id"), primary_key=True)
     servant_id : Mapped[int] = mapped_column(Integer, ForeignKey("servant.id"), primary_key=True)
-    status : Mapped[str] = mapped_column(String, nullable=False)
-    start_date : Mapped[DateTime] = mapped_column(DateTime)
-    end_date : Mapped[DateTime] = mapped_column(DateTime)
-    command_spells : Mapped[int] = mapped_column(Integer)
+    status : Mapped[str] = mapped_column(String, server_default='')
+    start_date : Mapped[DateTime] = mapped_column(DateTime, server_default='')
+    end_date : Mapped[DateTime] = mapped_column(DateTime, server_default='')
+    command_spells : Mapped[int] = mapped_column(Integer, server_default='')
     master : Mapped["Master"] = relationship("Master", back_populates="contracts")
     servant : Mapped["Servant"] = relationship("Servant", back_populates="contracts")
     

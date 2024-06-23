@@ -24,3 +24,15 @@ class MasterUpdate(BaseModel):
     nickname : str = None
     display_name : str = None
     level : int = None
+    
+class ContractCreate(BaseModel):
+    master_id : int
+    servant_id : int
+    
+class ContractUpdate(BaseModel):
+    master_id : int
+    servant_id : int
+    add_spells : int = 0
+    
+    
+    
