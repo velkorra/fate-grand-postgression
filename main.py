@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, File, HTTPException, UploadFile
 from .crud import *
 from .database import engine, SessionLocal, Base
 from sqlalchemy import text
@@ -24,7 +24,8 @@ def get_db():
         yield db
     finally:
         db.close()
-        
+
+
 @app.get('/sql')
 async def root():
     a = engine.connect()
@@ -36,26 +37,38 @@ async def root():
     return {"message": "Hello World"}
 
 @app.get('/servants')
-async def root(index : int = None, db : Session = Depends(get_db)):
+async def root(db : Session = Depends(get_db)):
     service = ServantService(db)
-    if index == None:
-        return [servant for servant in service.get_all()]
-    return service.get(index)
+    return service.get_all()
 
-@app.post('/create_servant')
-async def root(name: str, class_name : str, db : Session = Depends(get_db)):
+
+@app.get('/servants/{servant_id}')
+async def root(servant_id : int, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    return service.get(servant_id)
+
+@app.delete("/servants/{servant_id}")
+async def root(servant_id : int, db : Session = Depends(get_db)):
+    s = ServantService(db)
+    try:
+        s.delete(servant_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+        
+@app.post('/servants/new')
+async def root(servant : ServantCreate, db : Session = Depends(get_db)):
     service = ServantService(db)
     try:
-        servant = service.create(name, class_name)
+        servant = service.create(servant)
         return {"message": f"Created {servant}"}
     except ValueError as e:
         raise HTTPException(400, str(e))
     
-@app.put('/servant_update/{servant_id}')
+@app.put('/servants/{servant_id}')
 async def root(servant_id : int, s : ServantUpdate, db : Session = Depends(get_db)):
     service = ServantService(db)
     try:
-        servant = service.update(servant_id, s.name, s.class_name, s.ascension_level, s.level)
+        servant = service.update(servant_id, s)
         return {"message": f'Updated {servant}'}
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -99,3 +112,12 @@ async def root(servant_id : int = None, db : Session = Depends(get_db)):
 async def root(servant_id : int = None, db : Session = Depends(get_db)):
     service = ServantService(db)
     service.add_localization()
+
+
+@app.post("/upload/")
+async def upload_file(file: UploadFile = File(...)):
+
+    with open(file.filename, "wb") as buffer:
+        # Считываем и записываем содержимое файла на диск
+        buffer.write(await file.read())
+    return {"filename": file.filename, "message": "File uploaded successfully"}

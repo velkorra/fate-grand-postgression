@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, aliased
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, DataError
 from .models import *
+from .schemas import *
 
 class ServantService:
     def __init__(self, db : Session):
@@ -30,8 +31,8 @@ class ServantService:
         self.db.commit()
         
         
-    def create(self, name : str, class_name : str):
-        servant = Servant(name=name, class_name=class_name)
+    def create(self, servant : ServantCreate):
+        servant = Servant(name=servant.name, class_name=servant.class_name, alignment=servant.alignment, gender=servant.gender)
         try:
             self.db.add(servant)
             self.db.commit()
@@ -39,24 +40,44 @@ class ServantService:
             return servant
         except IntegrityError as e:
             self.db.rollback()
-            raise ValueError("Servant with such class and name already exists")
+            raise ValueError(str(e))
+        except DataError as e:
+            self.db.rollback()
+            raise ValueError("Invalid data: " + str(e.orig)) from e
 
-    def update(self, id : int, name : str = None, class_name : str = None, ascension_level : int = None, level : int = None):
+    def update(self, id: int, s: ServantUpdate):
         servant : Servant = self.db.query(Servant).get(id)
-        if name:
-            servant.name = name
-        if class_name:
-            servant.class_name = class_name
-        if ascension_level:
-            servant.ascension_level = ascension_level
-        if level:
-            servant.level = level
+        if s.name:
+            servant.name = s.name
+        if s.class_name:
+            servant.class_name = s.class_name
+        if s.ascension_level:
+            servant.ascension_level = s.ascension_level
+        if s.level:
+            servant.level = s.level
+        if s.alignment:
+            servant.alignment = s.alignment
+        if s.gender:
+            servant.gender = s.gender
         try:
             self.db.commit()
             self.db.refresh(servant)
             return servant
-        except Exception as e:
+        except IntegrityError as e:
+            self.db.rollback()
             raise ValueError(str(e))
+        except Exception as e:
+            self.db.rollback()
+            raise ValueError(str(e))
+    
+    def delete(self, id : int):
+        servant = self.get(id)
+        if servant:
+            self.db.delete(servant)
+            self.db.commit()
+        else:
+            raise ValueError("Servant does not exist")
+        
         
     def join(self, id : int = None):
         ru_loc = aliased(ServantLocalization)
