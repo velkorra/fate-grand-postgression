@@ -4,12 +4,19 @@ from dotenv import load_dotenv
 import os
 import logging
 
+class FormatLog(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool | logging.LogRecord:
+        return '[raw sql]' not in record
+
+
 logging.basicConfig(
     filename='sqlalchemy.log',  # имя файла, куда будет записан лог
-    level=logging.INFO,  # уровень логирования
+ # уровень логирования
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # форматирование сообщений
 )
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+
 load_dotenv()
 
 DATABASE_URL = os.getenv('DATABASE_URL')
