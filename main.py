@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from fastapi import FastAPI, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 import uvicorn
 from .crud import *
 from .database import engine, SessionLocal, Base
@@ -58,6 +59,7 @@ async def root(servant : ServantCreate, db : Session = Depends(get_db)):
     service = ServantService(db)
     try:
         servant = service.create(servant)
+        
         return {"message": f"Created {servant}"}
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -199,15 +201,50 @@ async def add_servant_picture(servant_id: int, grade: int = Form(...), file: Upl
         picture : ServantPicture = service.add_picture(servant_id, grade, saved_path)
         return {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
     except Exception as e:
-        raise e
         raise HTTPException(status_code=500, detail=str(e))
 
-# if __name__ == "__main__":
-#     current_dir = os.path.dirname(os.path.abspath(__file__))
-#     # Путь к директории app
-#     app_dir = os.path.join(current_dir, "app")
+# @app.post("/servants_new")
+# async def add_servant(servant : ServantWithPicture, db: Session = Depends(get_db)):
+@app.post("/servants_new")
+async def add_servant(name: str = Form(...),
+                      class_name: str = Form(...),
+                      gender: str = Form(...),
+                      alignment: str = Form(...),
+                      file: UploadFile = File(...),
+                      db: Session = Depends(get_db)):
+    service = ServantService(db)
+    message : str
+    try:
+        new_servant = service.create(ServantCreate(name=name, class_name=class_name, gender=gender, alignment=alignment))
+        picture_path = MEDIA_DIR / str(new_servant.id) / f'asc{"1"}{Path(file.filename).suffix}'
+    
+        try:
+            saved_path = save_file_to_disk(file, picture_path)
+            picture : ServantPicture = service.add_picture(new_servant.id, 1, saved_path)
+            message = {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        return {"message": f"Created {new_servant}", "message2": message}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    
+@app.get("/get_image/")
+async def get_image(servant_id : int, grade: int, db: Session = Depends(get_db)):
+    service = ServantService(db)
+    try:
+        image_path = service.get_picture(servant_id, grade)
+        return FileResponse(image_path, media_type=get_mime_type(image_path))
+    
+    except ValueError as e:
 
-#     # Меняем текущую рабочую директорию на app
-#     os.chdir(app_dir)
+        raise HTTPException(404, str(e))
 
-#     uvicorn.run("main:app", host="0.0.0.0", port=8000)
+    
+def get_mime_type(file_path: str) -> str:
+    ext = os.path.splitext(file_path)[-1].lower()
+    if ext == '.jpg' or ext == '.jpeg':
+        return 'image/jpeg'
+    elif ext == '.png':
+        return 'image/png'
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type")

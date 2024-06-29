@@ -1,4 +1,4 @@
-from fastapi import UploadFile
+from fastapi import File, Form, UploadFile
 from pydantic import BaseModel
 from typing import Optional
 
@@ -39,3 +39,10 @@ class ContractUpdate(BaseModel):
 class CreatePicture(BaseModel):
     grade : int
     picture : UploadFile
+    
+class ServantWithPicture(BaseModel):
+    name : str = Form(...)
+    class_name : str = Form(...)
+    gender : str = Form(...)
+    alignment : str = Form(...)
+    file : UploadFile = File(...)

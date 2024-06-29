@@ -32,7 +32,7 @@ class ServantService:
         self.db.commit()
         
         
-    def create(self, servant : ServantCreate):
+    def create(self, servant : ServantCreate) -> Servant:
         servant = Servant(name=servant.name, class_name=servant.class_name, alignment=servant.alignment, gender=servant.gender)
         try:
             self.db.add(servant)
@@ -143,7 +143,12 @@ class ServantService:
         except Exception as e:
             raise e
         
-        
+    def get_picture(self, servant_id : int, grade : int):
+        picture =  self.db.query(ServantPicture).get((servant_id, grade))
+        if picture:
+            return picture.picture
+        else:
+            raise ValueError("no picture")
         
 class MasterService:
     def __init__(self, db : Session):
