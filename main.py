@@ -1,9 +1,13 @@
-from fastapi import FastAPI, Depends, File, HTTPException, UploadFile
+import os
+from pathlib import Path
+from fastapi import FastAPI, Depends, File, Form, HTTPException, UploadFile
+import uvicorn
 from .crud import *
 from .database import engine, SessionLocal, Base
 from sqlalchemy import text
 from .schemas import *
 from fastapi.middleware.cors import CORSMiddleware
+from .utils import save_file_to_disk, MEDIA_DIR
 app = FastAPI()
 
 origins = [
@@ -179,3 +183,31 @@ async def upload_file(file: UploadFile = File(...)):
         # Считываем и записываем содержимое файла на диск
         buffer.write(await file.read())
     return {"filename": file.filename, "message": "File uploaded successfully"}
+
+@app.post("/servants/{servant_id}/pictures/")
+async def add_servant_picture(servant_id: int, grade: int = Form(...), file: UploadFile = File(...), db: Session = Depends(get_db)):
+    service = ServantService(db)
+    servant = service.get(servant_id)
+    if not servant:
+        raise HTTPException(status_code=404, detail="Servant not found")
+
+    picture_path = MEDIA_DIR / str(servant_id) / f'asc{grade}{Path(file.filename).suffix}'
+    
+    
+    try:
+        saved_path = save_file_to_disk(file, picture_path)
+        picture : ServantPicture = service.add_picture(servant_id, grade, saved_path)
+        return {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
+    except Exception as e:
+        raise e
+        raise HTTPException(status_code=500, detail=str(e))
+
+# if __name__ == "__main__":
+#     current_dir = os.path.dirname(os.path.abspath(__file__))
+#     # Путь к директории app
+#     app_dir = os.path.join(current_dir, "app")
+
+#     # Меняем текущую рабочую директорию на app
+#     os.chdir(app_dir)
+
+#     uvicorn.run("main:app", host="0.0.0.0", port=8000)

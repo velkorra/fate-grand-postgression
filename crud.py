@@ -132,6 +132,18 @@ class ServantService:
     def get_skills(self, id : int):
         servant = self.get(id)
         return servant.skills
+    
+    def add_picture(self, servant_id : int, grade : int, path : str):
+        new_picture = ServantPicture(grade = grade, picture = path)
+        servant = self.get(servant_id)
+        servant.pictures.append(new_picture)
+        try:
+            self.db.commit()
+            return new_picture
+        except Exception as e:
+            raise e
+        
+        
         
 class MasterService:
     def __init__(self, db : Session):

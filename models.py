@@ -32,6 +32,7 @@ class Servant(Base):
     aliases : Mapped[List["Alias"]] = relationship("Alias", back_populates="servant")
     contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="servant")
     skills : Mapped[List["ServantSkill"]] = relationship("ServantSkill", back_populates="servant", lazy="select")
+    pictures : Mapped[List["ServantPicture"]] = relationship("ServantPicture", back_populates="servant")
 
     def __repr__(self):
         return self._repr('id', 'class_name', 'name', 'ascension_level', 'level', 'state', 'alignment', 'gender')
@@ -40,9 +41,10 @@ class Servant(Base):
 
 class ServantPicture(Base):
     __tablename__ = "servant_picture"
-    servant_id : Mapped[int] = mapped_column(Integer, primary_key=True)
+    servant_id : Mapped[int] = mapped_column(Integer, ForeignKey("servant.id"), primary_key=True)
     grade : Mapped[int] = mapped_column(Integer, primary_key=True)
-    image : Mapped[str] = mapped_column(String)
+    picture : Mapped[str] = mapped_column(String)
+    servant : Mapped["Servant"] = relationship("Servant", back_populates="pictures")
 
     
 class Alias(Base):

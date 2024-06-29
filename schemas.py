@@ -1,3 +1,4 @@
+from fastapi import UploadFile
 from pydantic import BaseModel
 from typing import Optional
 
@@ -35,4 +36,6 @@ class ContractUpdate(BaseModel):
     add_spells : int = 0
     
     
-    
+class CreatePicture(BaseModel):
+    grade : int
+    picture : UploadFile
