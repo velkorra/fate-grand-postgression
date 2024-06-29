@@ -27,12 +27,12 @@ class Servant(Base):
     alignment : Mapped[str] = mapped_column(String)
     gender : Mapped[int] = mapped_column(String)
     
-    noble_phantasm : Mapped["NoblePhantasm"] = relationship("NoblePhantasm", back_populates="servant")
-    localizations : Mapped[List["ServantLocalization"]] = relationship("ServantLocalization", back_populates="servant")
-    aliases : Mapped[List["Alias"]] = relationship("Alias", back_populates="servant")
-    contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="servant")
+    noble_phantasm : Mapped["NoblePhantasm"] = relationship("NoblePhantasm", back_populates="servant", cascade="all, delete-orphan")
+    localizations : Mapped[List["ServantLocalization"]] = relationship("ServantLocalization", back_populates="servant", cascade="all, delete-orphan")
+    aliases : Mapped[List["Alias"]] = relationship("Alias", back_populates="servant", cascade="all, delete-orphan")
+    contracts : Mapped[List["Contract"]] = relationship("Contract", back_populates="servant", cascade="all, delete-orphan")
     skills : Mapped[List["ServantSkill"]] = relationship("ServantSkill", back_populates="servant", lazy="select")
-    pictures : Mapped[List["ServantPicture"]] = relationship("ServantPicture", back_populates="servant")
+    pictures : Mapped[List["ServantPicture"]] = relationship("ServantPicture", back_populates="servant", cascade="all, delete-orphan")
 
     def __repr__(self):
         return self._repr('id', 'class_name', 'name', 'ascension_level', 'level', 'state', 'alignment', 'gender')
