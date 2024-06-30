@@ -81,6 +81,15 @@ async def root(servant_id : int, db : Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(404, str(e))
 
+@app.get("/name/{servant_id}/{language}")
+async def root(servant_id : int, language : str, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    name = service.get_name(servant_id, language)
+    if name:
+        return {"name": name}
+    return "None"
+
+
 # Masters API -----------------------------------------------------
 
 @app.get('/masters')

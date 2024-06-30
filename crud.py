@@ -18,6 +18,11 @@ class ServantService:
         localizations = self.get(id).localizations        
         return {localization.language: localization for localization in localizations}
     
+    def get_name(self, servant_id, language):
+        localization = self.get_localizaion(servant_id, language)
+        if type(localization) is ServantLocalization:
+            return localization.name
+    
     def get_aliases():
         pass
     
