@@ -103,10 +103,10 @@ async def root(master_id : int, db : Session = Depends(get_db)):
     return service.get(master_id)
 
 @app.post('/masters')
-async def root(master : MasterCreate, db : Session = Depends(get_db)):
+async def root(nickname : str = Form(...), display_name : str = Form(...), db : Session = Depends(get_db)):
     service = MasterService(db)
     try:
-        m = service.create(master)
+        m = service.create(MasterCreate(nickname=nickname, display_name=display_name))
         return {"message": f"Created {m}"}
     except ValueError as e:
         raise HTTPException(400, str(e))
