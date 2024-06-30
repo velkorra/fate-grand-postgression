@@ -112,10 +112,10 @@ async def root(nickname : str = Form(...), display_name : str = Form(...), db : 
         raise HTTPException(400, str(e))
     
 @app.put('/masters/{master_id}')
-async def root(master_id: int, master : MasterUpdate, db : Session = Depends(get_db)):
+async def root(master_id: int, nickname : str = Form(...), level : int = Form(...), display_name : str = Form(...), db : Session = Depends(get_db)):
     service = MasterService(db)
     try:
-        m = service.update(master_id, master)
+        m = service.update(master_id, MasterUpdate(nickname=nickname, display_name=display_name, level=level))
         return f"updated {m}"
     except ValueError as e:
         raise HTTPException(400, str(e))
