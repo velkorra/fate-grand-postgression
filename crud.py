@@ -238,6 +238,10 @@ class MasterService:
         self.db.delete(m)
         self.db.commit()
     
+    def get_active_contracts_count(self, master_id):
+        c = self.db.query(Contract).filter(Contract.master_id == master_id).all()
+        return len(c)
+    
 class ContractService:
     def __init__(self, db : Session):
         self.db = db

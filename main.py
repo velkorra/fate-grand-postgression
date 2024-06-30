@@ -120,6 +120,13 @@ async def root(master_id: int, master : MasterUpdate, db : Session = Depends(get
     except ValueError as e:
         raise HTTPException(400, str(e))
 
+@app.get('/masters/{master_id}/active_count')
+async def root(master_id: int, db : Session = Depends(get_db)):
+    service = MasterService(db)
+    return {"count" : service.get_active_contracts_count(master_id)}
+
+
+
 @app.delete('/masters/{master_id}')
 async def root(master_id : int, db : Session = Depends(get_db)):
     service = MasterService(db)
