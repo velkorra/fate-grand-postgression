@@ -25,13 +25,42 @@ class ServantService:
         servant = self.get(id)
         localizations = self.get_details(id)
     
-    def add_localization(self):
-        details = ServantLocalization(language='ru', description="_____---_____")
-        s = self.get(8)
+    def add_localization(self,
+                        language : str, 
+                        servant_id : str, 
+                        name : str = None,
+                        description : str = None,
+                        history : str = None,
+                        prototype_person : str = None,
+                        illustrator : str = None,
+                        voice_actor : str = None,
+                        temper : str = None,
+                        intro : str = None):
+        details = ServantLocalization(
+        language = language,
+        name = name,
+        description = description,
+        history = history,
+        prototype_person = prototype_person,
+        illustrator = illustrator,
+        voice_actor = voice_actor,
+        temper = temper,
+        intro = intro
+        )
+        s = self.get(servant_id)
         s.localizations.append(details)
         self.db.commit()
         
+    def get_localizaion(self, servant_id: int, language : str):
+        servant = self.get(servant_id)
+        for localization in servant.localizations:
+            if localization.language == language:
+                return localization
+        if servant.localizations:
+            return servant.localizations[0]
+        return {"this servant has no info"}
         
+    
     def create(self, servant : ServantCreate) -> Servant:
         servant = Servant(name=servant.name, class_name=servant.class_name, alignment=servant.alignment, gender=servant.gender)
         try:

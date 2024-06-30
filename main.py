@@ -60,7 +60,7 @@ async def root(servant : ServantCreate, db : Session = Depends(get_db)):
     try:
         servant = service.create(servant)
         
-        return {"message": f"Created {servant}"}
+        return {"message": f"Created {servant}", "id": servant.id}
     except ValueError as e:
         raise HTTPException(400, str(e))
     
@@ -152,11 +152,11 @@ async def root(contract : ContractCreate, db : Session = Depends(get_db)):
     
 
 @app.get('/localization/{servant_id}')
-async def root(servant_id : int, db : Session = Depends(get_db)):
+async def root(servant_id : int, language : str, db : Session = Depends(get_db)):
     service = ServantService(db)
     # if index == None:
     #     return [master for master in service.get_details(servant_id)]
-    return service.get_details(servant_id)
+    return service.get_localizaion(servant_id, language)
 
 @app.get('/localization')
 async def root(servant_id : int = None, db : Session = Depends(get_db)):
@@ -172,10 +172,10 @@ async def root(servant_id : int = None, db : Session = Depends(get_db)):
     #     return [master for master in service.get_details(servant_id)]
     return service.get_skills(servant_id)
 
-@app.post('/localization')
-async def root(servant_id : int = None, db : Session = Depends(get_db)):
-    service = ServantService(db)
-    service.add_localization()
+# @app.post('/localization')
+# async def root(servant_id : int = None, db : Session = Depends(get_db)):
+#     service = ServantService(db)
+#     service.add_localization()
 
 
 @app.post("/upload/")
@@ -224,7 +224,7 @@ async def add_servant(name: str = Form(...),
             message = {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-        return {"message": f"Created {new_servant}", "message2": message}
+        return {"message": f"Created {new_servant}", "message2": message, "id": new_servant.id}
     except ValueError as e:
         raise HTTPException(400, str(e))
     
@@ -239,7 +239,34 @@ async def get_image(servant_id : int, grade: int, db: Session = Depends(get_db))
 
         raise HTTPException(404, str(e))
 
-    
+@app.post("/localization")
+async def root(
+            servant_id : int,
+            language : str,
+            name: str = Form(...),
+            description: str = Form(...),
+            history: str = Form(...),
+            prototype_person: str = Form(...),
+            illustrator: str = Form(...),
+            voice_actor: str = Form(...),
+            temper: str = Form(...),
+            intro: str = Form(...),
+            db: Session = Depends(get_db)):
+
+    service = ServantService(db)
+    service.add_localization(language = language,
+                            servant_id=servant_id,
+                            name = name,
+                            description = description,
+                            history = history,
+                            prototype_person = prototype_person,
+                            illustrator = illustrator,
+                            voice_actor = voice_actor,
+                            temper = temper,
+                            intro = intro)
+
+
+
 def get_mime_type(file_path: str) -> str:
     ext = os.path.splitext(file_path)[-1].lower()
     if ext == '.jpg' or ext == '.jpeg':

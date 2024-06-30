@@ -46,3 +46,6 @@ class ServantWithPicture(BaseModel):
     gender : str = Form(...)
     alignment : str = Form(...)
     file : UploadFile = File(...)
+    
+
+    
