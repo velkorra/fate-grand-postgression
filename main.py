@@ -65,10 +65,10 @@ async def root(servant : ServantCreate, db : Session = Depends(get_db)):
         raise HTTPException(400, str(e))
     
 @app.put('/servants/{servant_id}')
-async def root(servant_id : int, s : ServantUpdate, db : Session = Depends(get_db)):
+async def root(servant_id : int, name: str = Form(...), alignment : str = Form(...), class_name : str = Form(...), gender : str = Form(...), db : Session = Depends(get_db)):
     service = ServantService(db)
     try:
-        servant = service.update(servant_id, s)
+        servant = service.update(servant_id, ServantUpdate(name=name, alignment=alignment, class_name=class_name, gender=gender))
         return {"message": f'Updated {servant}'}
     except ValueError as e:
         raise HTTPException(400, str(e))
@@ -271,6 +271,31 @@ async def root(
 
     service = ServantService(db)
     service.add_localization(language = language,
+                            servant_id=servant_id,
+                            name = name,
+                            description = description,
+                            history = history,
+                            prototype_person = prototype_person,
+                            illustrator = illustrator,
+                            voice_actor = voice_actor,
+                            temper = temper,
+                            intro = intro)
+@app.put("/localization")
+async def root(
+            servant_id : int,
+            language : str,
+            name: str = Form(...),
+            description: str = Form(...),
+            history: str = Form(...),
+            prototype_person: str = Form(...),
+            illustrator: str = Form(...),
+            voice_actor: str = Form(...),
+            temper: str = Form(...),
+            intro: str = Form(...),
+            db: Session = Depends(get_db)):
+
+    service = ServantService(db)
+    service.update_localization(language = language,
                             servant_id=servant_id,
                             name = name,
                             description = description,

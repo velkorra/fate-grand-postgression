@@ -55,7 +55,45 @@ class ServantService:
         s = self.get(servant_id)
         s.localizations.append(details)
         self.db.commit()
-        
+    
+    def update_localization(self,
+                        language : str, 
+                        servant_id : str, 
+                        name : str = None,
+                        description : str = None,
+                        history : str = None,
+                        prototype_person : str = None,
+                        illustrator : str = None,
+                        voice_actor : str = None,
+                        temper : str = None,
+                        intro : str = None):
+        details = self.db.query(ServantLocalization).filter(ServantLocalization.servant_id == servant_id, ServantLocalization.language==language).first()
+        dd = True
+        if not details:
+            dd = details
+            details = ServantLocalization()
+        if language:
+            details.language = language
+        if name:
+            details.name = name
+        if description:
+            details.description = description
+        if history:
+            details.history = history
+        if prototype_person:
+            details.prototype_person = prototype_person
+        if illustrator:
+            details.illustrator = illustrator
+        if voice_actor:
+            details.voice_actor = voice_actor
+        if temper:
+            details.temper = temper
+        if intro:
+            details.intro = intro
+        if not dd:
+            s  = self.get(servant_id)
+            s.localizations.append(details)
+        self.db.commit()
     def get_localizaion(self, servant_id: int, language : str):
         servant = self.get(servant_id)
         for localization in servant.localizations:
