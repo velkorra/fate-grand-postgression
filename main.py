@@ -158,10 +158,10 @@ async def root(contract : ContractCreate, db : Session = Depends(get_db)):
         raise HTTPException(400, str(e))
         
 
-# @app.delete('/contracts/')
-# async def root(servant_id : int, master_id: int, db : Session = Depends(get_db)):
-#     service = ContractService(db)
-#     service.delete(servant_id, master_id)
+@app.delete('/contracts')
+async def root(servant_id : int, master_id: int, db : Session = Depends(get_db)):
+    service = ContractService(db)
+    service.delete(servant_id, master_id)
     
 
 
@@ -243,7 +243,16 @@ async def add_servant(name: str = Form(...),
         return {"message": f"Created {new_servant}", "message2": message, "id": new_servant.id}
     except ValueError as e:
         raise HTTPException(400, str(e))
+@app.post("/add_image/{servant_id}")
+async def add_image(servant_id : int, file : UploadFile = File(...), db: Session = Depends(get_db)):
+    service = ServantService(db)
+    servant = service.get(servant_id)
     
+    picture_path = MEDIA_DIR / str(servant.id) / f'asc{"1"}{Path(file.filename).suffix}'
+    saved_path = save_file_to_disk(file, picture_path)
+    picture : ServantPicture = service.add_picture(servant.id, 1, saved_path)
+    message = {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
+    return message
 @app.get("/get_image/")
 async def get_image(servant_id : int, grade: int, db: Session = Depends(get_db)):
     service = ServantService(db)
