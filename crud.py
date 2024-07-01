@@ -102,6 +102,28 @@ class ServantService:
         if servant.localizations:
             return servant.localizations[0]
         return {"this servant has no info"}
+    def get_all_np(self):
+        return self.db.query(NoblePhantasm).all()
+    
+    def update_np(self, np : NoblePhantasmUpdate):
+        updated_np : NoblePhantasm = self.db.query(NoblePhantasm).get(np.servant_id)
+        updated_np.activation_type = np.activation_type
+        updated_np.description = np.description
+        updated_np.name = np.name
+        updated_np.rank = np.rank
+        self.db.commit()
+    
+    def create_np(self, np : NoblePhantasmUpdate):
+        new_np = NoblePhantasm(
+        servant_id = np.servant_id,
+        activation_type = np.activation_type,
+        description = np.description,
+        name = np.name,
+        rank = np.rank
+        )
+        self.db.add(new_np)
+        self.db.commit()
+        
         
     
     def create(self, servant : ServantCreate) -> Servant:
@@ -289,6 +311,11 @@ class ContractService:
     
     def get_all(self):
         return self.db.query(Contract).all()
+    
+    def delete(self, servant_id, master_id):
+        contract= self.db.query(Contract).filter(Contract.servant_id==servant_id, Contract.master_id==master_id).first()
+        self.db.delete(contract)
+        self.db.commit()
     
     def create(self, contract_create : ContractCreate):
         contract = Contract(servant_id = contract_create.servant_id, master_id = contract_create.master_id)

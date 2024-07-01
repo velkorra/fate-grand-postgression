@@ -60,10 +60,8 @@ class NoblePhantasm(Base):
     servant_id : Mapped[int] = mapped_column(Integer, ForeignKey("servant.id"), primary_key=True)
     rank : Mapped[str] = mapped_column(String)
     activation_type : Mapped[str] = mapped_column("type", String)
-    name_ru : Mapped[str] = mapped_column(String)
-    name_en : Mapped[str] = mapped_column(String)
-    description_ru : Mapped[str] = mapped_column(Text)
-    description_ru : Mapped[str] = mapped_column(Text)
+    name : Mapped[str] = mapped_column(String)
+    description : Mapped[str] = mapped_column(Text)
     servant : Mapped["Servant"]= relationship("Servant", back_populates="noble_phantasm")
 
     
@@ -100,10 +98,8 @@ class Skill(Base):
     skill_type : Mapped[str] = mapped_column("type", String)
     servants : Mapped[List["ServantSkill"]] = relationship("ServantSkill", back_populates="skill")
     rank : Mapped[str] = mapped_column(String)
-    name_ru : Mapped[str] = mapped_column(String)
-    name_en : Mapped[str] = mapped_column(String)
-    description_ru : Mapped[str] = mapped_column(Text)
-    description_en : Mapped[str] = mapped_column(Text)
+    name : Mapped[str] = mapped_column(String)
+    description : Mapped[str] = mapped_column(Text)
     icon : Mapped[str] = mapped_column(String)
     def __str__(self):
         return self.skill_type

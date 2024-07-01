@@ -48,4 +48,9 @@ class ServantWithPicture(BaseModel):
     file : UploadFile = File(...)
     
 
-    
+class NoblePhantasmUpdate(BaseModel):
+    servant_id: int
+    rank: str
+    activation_type: str
+    name: str
+    description: str

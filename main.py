@@ -163,9 +163,22 @@ async def root(servant_id : int, master_id: int, db : Session = Depends(get_db))
     service = ContractService(db)
     service.delete(servant_id, master_id)
     
+@app.get("/np/all")
+async def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    return service.get_all_np()
+
+@app.put("/np")
+async def updateNP(noble_phantasm : NoblePhantasmUpdate, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    service.update_np(np=noble_phantasm)
+
+@app.post("/np")
+async def updateNP(noble_phantasm : NoblePhantasmUpdate, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    service.create_np(np=noble_phantasm)
 
 
-    
 
 @app.get('/localization/{servant_id}')
 async def root(servant_id : int, language : str, db : Session = Depends(get_db)):
