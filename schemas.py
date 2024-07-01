@@ -54,3 +54,10 @@ class NoblePhantasmUpdate(BaseModel):
     activation_type: str
     name: str
     description: str
+    
+class SkillSchema(BaseModel):
+    id : int
+    skill_type: str
+    rank: str
+    name: str
+    description: str

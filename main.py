@@ -8,7 +8,7 @@ from .database import engine, SessionLocal, Base
 from sqlalchemy import text
 from .schemas import *
 from fastapi.middleware.cors import CORSMiddleware
-from .utils import save_file_to_disk, MEDIA_DIR
+from .utils import SKILL_DIR, save_file_to_disk, MEDIA_DIR
 app = FastAPI()
 
 origins = [
@@ -200,13 +200,44 @@ async def root(servant_id : int = None, db : Session = Depends(get_db)):
     # if index == None:
     #     return [master for master in service.get_details(servant_id)]
     return service.get_skills(servant_id)
+@app.get('/skills')
+async def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
 
-# @app.post('/localization')
-# async def root(servant_id : int = None, db : Session = Depends(get_db)):
-#     service = ServantService(db)
-#     service.add_localization()
+    return service.get_all_skills()
 
+@app.post('/skills')
+async def root(skill : SkillSchema, db : Session = Depends(get_db)):
+    service = ServantService(db)
 
+    return service.create_skill(skill)
+
+@app.put('/skills')
+async def root(skill : SkillSchema, db : Session = Depends(get_db)):
+    service = ServantService(db)
+
+    return service.update_skill(skill)
+
+@app.get("/skill_picture/{id}")
+async def get_image(id : int, db: Session = Depends(get_db)):
+    service = ServantService(db)
+    try:
+        image_path = service.get_skill_icon(id)
+        return FileResponse(image_path, media_type=get_mime_type(image_path))
+    
+    except ValueError as e:
+
+        raise HTTPException(404, str(e))
+
+@app.post("/add_skill_picture/{id}")
+async def root(id : int, file : UploadFile = File(...), db : Session = Depends(get_db)):
+    service = ServantService(db)
+
+    picture_path = SKILL_DIR / f'skill_{id}_icon{Path(file.filename).suffix}'
+    saved_path = save_file_to_disk(file, picture_path)
+    service.add_skill_picture(id, saved_path)
+    message = {"message" : "success"}
+    return message
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
 

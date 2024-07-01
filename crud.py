@@ -123,7 +123,24 @@ class ServantService:
         )
         self.db.add(new_np)
         self.db.commit()
-        
+    
+    def update_skill(self, skill: SkillSchema):
+        updated_skill : Skill = self.db.query(Skill).get(skill.id)
+        updated_skill.name = skill.name
+        updated_skill.description = skill.description
+        updated_skill.rank = skill.rank
+        updated_skill.skill_type = skill.skill_type
+        self.db.commit()
+    
+    def create_skill(self, skill : SkillSchema):
+        new_skill = Skill(
+            name = skill.name,
+            description=skill.description,
+            rank = skill.rank,
+            skill_type = skill.skill_type
+        )
+        self.db.add(new_skill)
+        self.db.commit()
         
     
     def create(self, servant : ServantCreate) -> Servant:
@@ -226,7 +243,18 @@ class ServantService:
     def get_skills(self, id : int):
         servant = self.get(id)
         return servant.skills
+    def get_skill(self, id : int) -> Skill:
+        return self.db.query(Skill).get(id)
+    def get_all_skills(self):
+        return self.db.query(Skill).all()
     
+    def add_skill_picture(self, id, path):
+        skill : Skill= self.db.query(Skill).get(id)
+        skill.icon = path
+        self.db.commit()
+    def get_skill_icon(self, id):
+        skill : Skill= self.db.query(Skill).get(id)
+        return skill.icon
     def add_picture(self, servant_id : int, grade : int, path : str):
         new_picture = ServantPicture(grade = grade, picture = path)
         servant = self.get(servant_id)
