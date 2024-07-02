@@ -61,3 +61,36 @@ class SkillSchema(BaseModel):
     rank: str
     name: str
     description: str
+
+class ClassLevelStats(BaseModel):
+    class_name: str
+    max_level: int
+    min_level: int
+    avg_level: float
+    
+    
+class Localization(BaseModel):
+    language: str
+    name: str
+    description: str
+
+class ServantLocalizationResponse(BaseModel):
+    servant_name: str
+    localization_language: str
+    localization_name: str
+    localization_description: str
+    
+class ServantMasterResponse(BaseModel):
+    servant_name: str
+    localization_name: str
+    master_nickname: str
+    
+class ServantDescriptionResponse(BaseModel):
+    servant_name: str
+    language: str
+    description: str
+    
+class TopServantResponse(BaseModel):
+    master_nickname: str
+    servant_name: str
+    servant_level: int

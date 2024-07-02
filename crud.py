@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.exc import IntegrityError, DataError, InternalError
 from psycopg2.errors import CheckViolation, UniqueViolation, RaiseException, ForeignKeyViolation
@@ -190,6 +191,15 @@ class ServantService:
         else:
             raise ValueError("Servant does not exist")
         
+    def get_localizaions(self):
+        return self.db.query(
+            Servant.name,
+            ServantLocalization.language,
+            ServantLocalization.name,
+            ServantLocalization.description
+        ).join(ServantLocalization).filter(
+            ServantLocalization.language.in_(['ru', 'en'])
+        ).all()
         
     def join(self, id : int = None):
         ru_loc = aliased(ServantLocalization)
@@ -243,11 +253,22 @@ class ServantService:
     def get_skills(self, id : int):
         servant = self.get(id)
         return servant.skills
+    
+    
     def get_skill(self, id : int) -> Skill:
         return self.db.query(Skill).get(id)
+    
+    
     def get_all_skills(self):
         return self.db.query(Skill).all()
     
+    
+    def delete_skill(self, id):
+        skill = self.db.query(Skill).get(id)
+        self.db.delete(skill)
+        self.db.commit()
+        
+        
     def add_skill_picture(self, id, path):
         skill : Skill= self.db.query(Skill).get(id)
         skill.icon = path
@@ -256,7 +277,7 @@ class ServantService:
         skill : Skill= self.db.query(Skill).get(id)
         return skill.icon
     def add_picture(self, servant_id : int, grade : int, path : str):
-        new_picture = ServantPicture(grade = grade, picture = path)
+        new_picture = ServantPicture(grade = 1, picture = path)
         servant = self.get(servant_id)
         servant.pictures.append(new_picture)
         try:
@@ -266,11 +287,77 @@ class ServantService:
             raise e
         
     def get_picture(self, servant_id : int, grade : int):
-        picture =  self.db.query(ServantPicture).get((servant_id, grade))
+        picture =  self.db.query(ServantPicture).get((servant_id, 1))
         if picture:
             return picture.picture
         else:
             raise ValueError("no picture")
+        
+    def get_level_analys(self):
+        return self.db.query(
+                    Servant.class_name,
+                    func.max(Servant.level).label('max_level'),
+                    func.min(Servant.level).label('min_level'),
+                    func.avg(Servant.level).label('avg_level')
+).group_by(Servant.class_name).all()
+    def get_summoned_servants(self):
+        return self.db.query(
+            Servant.name.label('servant_name'),
+            ServantLocalization.name.label('localization_name'),
+            Master.nickname.label('master_nickname')
+        ).join(Contract, Servant.id == Contract.servant_id).join(
+            Master, Contract.master_id == Master.id
+        ).join(
+            ServantLocalization, Servant.id == ServantLocalization.servant_id
+        ).filter(
+            ServantLocalization.language == 'ru'
+        ).all()
+    def get_female_servants(self):
+        return self.db.query(
+            Servant.name.label('servant_name'),
+            ServantLocalization.language.label('language'),
+            ServantLocalization.description.label('description')
+        ).join(ServantLocalization).filter(
+            Servant.gender == 'female',
+            ServantLocalization.language.in_(['ru', 'en'])
+        ).all()
+    
+    def get_top_servants(self):
+        stmt = (self.db.query(
+                    Contract.master_id,
+                    Servant.id.label("servant_id"),
+                    Servant.level,
+                    func.row_number().over(
+                        partition_by=Contract.master_id,
+                        order_by=Servant.level.desc()
+                    ).label("rank")
+                )
+                .join(Servant, Servant.id == Contract.servant_id)
+                .subquery()
+        )
+
+        query = (self.db.query(
+                    Master.nickname.label("master_nickname"),
+                    ServantLocalization.name.label("servant_name"),
+                    stmt.c.level.label("servant_level")
+                 )
+                 .join(Master, stmt.c.master_id == Master.id)
+                 .join(ServantLocalization, and_(stmt.c.servant_id == ServantLocalization.servant_id, 
+                                                 ServantLocalization.language == 'en'))
+                 .filter(stmt.c.rank <= 3)
+                 .order_by(Master.nickname, stmt.c.rank)
+                 .all()
+        )
+        response = [
+            TopServantResponse(
+                master_nickname=row.master_nickname,
+                servant_name=row.servant_name,
+                servant_level=row.servant_level
+            )
+            for row in query
+        ]
+        
+        return response
         
 class MasterService:
     def __init__(self, db : Session):
@@ -327,7 +414,7 @@ class MasterService:
         self.db.commit()
     
     def get_active_contracts_count(self, master_id):
-        c = self.db.query(Contract).filter(Contract.master_id == master_id).all()
+        c = self.db.query(Contract).filter(Contract.master_id == master_id and Contract.status=="active").all()
         return len(c)
     
 class ContractService:

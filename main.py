@@ -41,6 +41,63 @@ async def root():
 async def root():
     return {"message": "Hello World"}
 
+
+@app.get("/summoned_servants", response_model=List[ServantMasterResponse])
+async def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    query = service.get_summoned_servants()
+    response = [
+            ServantMasterResponse(
+                servant_name=row.servant_name,
+                localization_name=row.localization_name,
+                master_nickname=row.master_nickname
+            )
+            for row in query
+        ]
+        
+    return response
+
+@app.get("/top_servants", response_model=List[TopServantResponse])
+def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    return service.get_top_servants()
+
+@app.get("/female_servants_descriptions", response_model=List[ServantDescriptionResponse])
+def get_female_servants_descriptions(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    query = service.get_female_servants()
+    response = [
+            ServantDescriptionResponse(
+                servant_name=row.servant_name,
+                language=row.language,
+                description=row.description
+            )
+            for row in query
+        ]
+        
+    return response
+@app.get('/level_analys', response_model=list[ClassLevelStats])
+async def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    results = service.get_level_analys()
+    
+
+        # Преобразование результатов в список словарей
+    class_stats = [
+        ClassLevelStats(
+            class_name=row.class_name,
+            max_level=row.max_level,
+            min_level=row.min_level,
+            avg_level=float(row.avg_level)  # Преобразование в float для корректной сериализации
+        )
+        for row in results
+    ]
+        
+    return class_stats
+    quit()
+    
+
+
 # Servants API -----------------------------------------------------
 @app.get('/servants')
 async def root(db : Session = Depends(get_db)):
@@ -156,7 +213,24 @@ async def root(contract : ContractCreate, db : Session = Depends(get_db)):
         return {f"created contract between servant {contract.servant_id} and master {contract.master_id}": new_contract}
     except ValueError as e:
         raise HTTPException(400, str(e))
-        
+
+@app.get('/all_localization', response_model=list[ServantLocalizationResponse])
+def root(db : Session = Depends(get_db)):
+    service = ServantService(db)
+    query = service.get_localizaions()
+    servant_dict = {}
+    response = [
+            ServantLocalizationResponse(
+                servant_name=row[0],
+                localization_language=row[1],
+                localization_name=row[2],
+                localization_description=row[3]
+            )
+            for row in query
+        ]
+    
+    return response
+
 
 @app.delete('/contracts')
 async def root(servant_id : int, master_id: int, db : Session = Depends(get_db)):
@@ -197,9 +271,11 @@ async def root(servant_id : int = None, db : Session = Depends(get_db)):
 @app.get('/skill/{servant_id}')
 async def root(servant_id : int = None, db : Session = Depends(get_db)):
     service = ServantService(db)
-    # if index == None:
-    #     return [master for master in service.get_details(servant_id)]
     return service.get_skills(servant_id)
+@app.delete('/skills/{id}')
+async def root(id : int = None, db : Session = Depends(get_db)):
+    service = ServantService(db)
+    return service.delete_skill(id)
 @app.get('/skills')
 async def root(db : Session = Depends(get_db)):
     service = ServantService(db)
@@ -369,3 +445,4 @@ def get_mime_type(file_path: str) -> str:
         return 'image/png'
     else:
         raise HTTPException(status_code=400, detail="Unsupported file type")
+    
