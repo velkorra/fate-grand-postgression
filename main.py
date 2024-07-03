@@ -13,6 +13,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:3000",
+    "https://1pqzvstl-3000.euw.devtunnels.ms/"
 ]
 
 app.add_middleware(
