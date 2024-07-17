@@ -1,28 +1,60 @@
-from sqlalchemy import func
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy import and_, func
+from sqlalchemy.future import select
+from sqlalchemy.orm import Session, aliased, selectinload, load_only, joinedload
 from sqlalchemy.exc import IntegrityError, DataError, InternalError
+from sqlalchemy.ext.asyncio import AsyncSession
 from psycopg2.errors import CheckViolation, UniqueViolation, RaiseException, ForeignKeyViolation
 from .models import *
 from .schemas import *
 
 class ServantService:
-    def __init__(self, db : Session):
+    def __init__(self, db : AsyncSession):
         self.db = db
     
-    def get(self, id : int) -> Servant:
-        return self.db.query(Servant).get(id)
+    async def get(self, id : int):
+        query = select(Servant).options(selectinload(Servant.localizations)).where(Servant.id==id)
+        servant = await self.db.execute(query)
+        return servant.scalars().first()
     
-    def get_all(self):
-        return self.db.query(Servant).all()
+    async def get_all(self):
+        query = select(Servant)
+        servants = await self.db.execute(query)
+        return servants.scalars().all()
     
-    def get_details(self, id : int):
-        localizations = self.get(id).localizations        
+    async def get_servant_list(self, lang):
+        localization_alias = aliased(ServantLocalization)
+        
+        query = (
+            select(Servant)
+            .options(
+                load_only(
+                    Servant.id,
+                    Servant.class_name,
+                    Servant.name,
+                    Servant.ascension_level,
+                    Servant.level,
+                    Servant.state,
+                    Servant.alignment,
+                    Servant.gender
+                ),
+                joinedload(Servant.localizations).load_only(ServantLocalization.language, ServantLocalization.name)
+            )
+            .where(Servant.localizations.any(language=lang))
+        )
+        servants = await self.db.execute(query)
+        return servants.scalars().all()
+    
+
+    async def get_details(self, id: int):
+        servant = await self.get(id)
+        localizations: List[ServantLocalization] = await self.get_localizaion(servant.id)
         return {localization.language: localization for localization in localizations}
-    
-    def get_name(self, servant_id, language):
-        localization = self.get_localizaion(servant_id, language)
+
+    async def get_name(self, servant_id, language):
+        localization = await self.get_localizaion(servant_id, language)
         if type(localization) is ServantLocalization:
             return localization.name
+        return "none"
     
     def get_aliases():
         pass
@@ -95,8 +127,8 @@ class ServantService:
             s  = self.get(servant_id)
             s.localizations.append(details)
         self.db.commit()
-    def get_localizaion(self, servant_id: int, language : str):
-        servant = self.get(servant_id)
+    async def get_localizaion(self, servant_id: int, language : str):
+        servant = await self.get(servant_id)
         for localization in servant.localizations:
             if localization.language == language:
                 return localization
@@ -286,8 +318,11 @@ class ServantService:
         except Exception as e:
             raise e
         
-    def get_picture(self, servant_id : int, grade : int):
-        picture =  self.db.query(ServantPicture).get((servant_id, 1))
+    async def get_picture(self, servant_id : int, grade : int):
+        sp = ServantPicture
+        query = select(sp).where(sp.servant_id==servant_id, sp.grade==1)
+        result = await self.db.execute(query)
+        picture = result.scalars().first()
         if picture:
             return picture.picture
         else:

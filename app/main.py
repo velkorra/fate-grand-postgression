@@ -4,15 +4,19 @@ from fastapi import FastAPI, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 import uvicorn
 from .crud import *
-from .database import engine, SessionLocal, Base
+from .database import SessionLocal, Base
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import *
 from fastapi.middleware.cors import CORSMiddleware
 from .utils import SKILL_DIR, save_file_to_disk, MEDIA_DIR
 app = FastAPI()
 
 origins = [
+    "https://d0jzr844-3000.euw.devtunnels.ms",
+    "https://velkorra.github.io",
     "http://localhost:3000",
+    "http://localhost:8080",
     "https://1pqzvstl-3000.euw.devtunnels.ms/"
 ]
 
@@ -24,19 +28,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
 
-
-@app.get('/sql')
-async def root():
-    a = engine.connect()
-    with open('queries/join.sql', encoding='utf-8') as f:
-        return str(a.execute(text(f.read())).fetchall())
+# @app.get('/sql')
+# async def root():
+#     a = engine.connect()
+#     with open('queries/join.sql', encoding='utf-8') as f:
+#         return str(a.execute(text(f.read())).fetchall())
 
 @app.get("/")
 async def root():
@@ -101,15 +107,28 @@ async def root(db : Session = Depends(get_db)):
 
 # Servants API -----------------------------------------------------
 @app.get('/servants')
-async def root(db : Session = Depends(get_db)):
+async def root(db : AsyncSession = Depends(get_db)):
     service = ServantService(db)
-    return service.get_all()
+    servants = await service.get_all()
+    return servants
+
+@app.get('/servants_list/{lang}')
+async def root(lang: str ,db : AsyncSession = Depends(get_db)):
+    service = ServantService(db)
+    servants = await service.get_servant_list(lang)
+    return servants
+@app.get('/servants')
+async def root(db : AsyncSession = Depends(get_db)):
+    service = ServantService(db)
+    servants = await service.get_all()
+    return servants
 
 
 @app.get('/servants/{servant_id}')
 async def root(servant_id : int, db : Session = Depends(get_db)):
     service = ServantService(db)
-    return service.get(servant_id)
+    servant = await service.get(servant_id)
+    return servant
 
         
 @app.post('/servants')
@@ -142,7 +161,7 @@ async def root(servant_id : int, db : Session = Depends(get_db)):
 @app.get("/name/{servant_id}/{language}")
 async def root(servant_id : int, language : str, db : Session = Depends(get_db)):
     service = ServantService(db)
-    name = service.get_name(servant_id, language)
+    name = await service.get_name(servant_id, language)
     if name:
         return {"name": name}
     return "None"
@@ -260,7 +279,8 @@ async def root(servant_id : int, language : str, db : Session = Depends(get_db))
     service = ServantService(db)
     # if index == None:
     #     return [master for master in service.get_details(servant_id)]
-    return service.get_localizaion(servant_id, language)
+    result = await service.get_localizaion(servant_id, language)
+    return result
 
 @app.get('/localization')
 async def root(servant_id : int = None, db : Session = Depends(get_db)):
@@ -378,7 +398,7 @@ async def add_image(servant_id : int, file : UploadFile = File(...), db: Session
 async def get_image(servant_id : int, grade: int, db: Session = Depends(get_db)):
     service = ServantService(db)
     try:
-        image_path = service.get_picture(servant_id, grade)
+        image_path = await service.get_picture(servant_id, grade)
         return FileResponse(image_path, media_type=get_mime_type(image_path))
     
     except ValueError as e:
