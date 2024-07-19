@@ -28,12 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
+
 async def get_db():
     async with SessionLocal() as session:
         yield session

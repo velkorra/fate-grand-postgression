@@ -21,29 +21,34 @@ class ServantService:
         servants = await self.db.execute(query)
         return servants.scalars().all()
     
-    async def get_servant_list(self, lang):
-        localization_alias = aliased(ServantLocalization)
-        
+    async def get_servant_list(self, lang) -> List[Servant]:
         query = (
-            select(Servant)
-            .options(
-                load_only(
-                    Servant.id,
-                    Servant.class_name,
-                    Servant.name,
-                    Servant.ascension_level,
-                    Servant.level,
-                    Servant.state,
-                    Servant.alignment,
-                    Servant.gender
-                ),
-                joinedload(Servant.localizations).load_only(ServantLocalization.language, ServantLocalization.name)
+                select(Servant)
+                .options(
+                    load_only(
+                        Servant.id,
+                        Servant.class_name,
+                        Servant.name,
+                        Servant.ascension_level,
+                        Servant.level,
+                        Servant.state,
+                        Servant.alignment,
+                        Servant.gender
+                    ),
+                    selectinload(Servant.localizations).load_only(
+                        ServantLocalization.language, ServantLocalization.name
+                    )
+                )
+                .where(Servant.localizations.any(language=lang))
             )
-            .where(Servant.localizations.any(language=lang))
-        )
         servants = await self.db.execute(query)
-        return servants.scalars().all()
-    
+        servants = servants.scalars().all()
+        response = []
+        for servant in servants:
+            s = ServantAndName.model_validate(servant)
+            s.true_name = servant.localizations[0].name
+            response.append(s)
+        return response
 
     async def get_details(self, id: int):
         servant = await self.get(id)
@@ -63,7 +68,7 @@ class ServantService:
         servant = self.get(id)
         localizations = self.get_details(id)
     
-    def add_localization(self,
+    async def add_localization(self,
                         language : str, 
                         servant_id : str, 
                         name : str = None,
@@ -85,9 +90,9 @@ class ServantService:
         temper = temper,
         intro = intro
         )
-        s = self.get(servant_id)
+        s = await self.get(servant_id)
         s.localizations.append(details)
-        self.db.commit()
+        await self.db.commit()
     
     def update_localization(self,
                         language : str, 
