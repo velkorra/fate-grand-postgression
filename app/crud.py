@@ -409,14 +409,16 @@ class ServantService:
 
 
 class MasterService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, id) -> Master | None:
-        return self.db.query(Master).get(id)
+    async def get(self, id) -> Master | None:
+        query = select(Master).where(Master.id == id)
+        return (await self.db.execute(query)).scalars().first()
 
-    def get_all(self):
-        return self.db.query(Master).all()
+    async def get_all(self) -> List[Master]:
+        query = select(Master)
+        return (await self.db.execute(query)).scalars().all()
 
     def create(self, master: MasterCreate):
         new_master = Master(
@@ -467,12 +469,12 @@ class MasterService:
         self.db.delete(m)
         self.db.commit()
 
-    def get_active_contracts_count(self, master_id):
-        c = (
-            self.db.query(Contract)
-            .filter(Contract.master_id == master_id and Contract.status == "active")
-            .all()
+    async def get_active_contracts_count(self, master_id):
+        query = select(Contract).where(
+            (Contract.master_id == master_id) & 
+            (Contract.status == "active")
         )
+        c = (await self.db.execute(query)).scalars().all()
         return len(c)
 
 

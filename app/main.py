@@ -166,7 +166,7 @@ async def get_servant_name(servant_id: int, language: str, db: Session = Depends
 @app.get('/masters')
 async def root(db : Session = Depends(get_db)):
     service = MasterService(db)
-    return service.get_all()
+    return await service.get_all()
 
 @app.get('/masters/{master_id}')
 async def root(master_id : int, db : Session = Depends(get_db)):
@@ -194,7 +194,7 @@ async def root(master_id: int, nickname : str = Form(...), level : int = Form(..
 @app.get('/masters/{master_id}/active_count')
 async def root(master_id: int, db : Session = Depends(get_db)):
     service = MasterService(db)
-    return {"count" : service.get_active_contracts_count(master_id)}
+    return {"count" : await service.get_active_contracts_count(master_id)}
 
 
 
