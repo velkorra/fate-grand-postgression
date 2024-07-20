@@ -1,10 +1,17 @@
 from fastapi import File, Form, UploadFile
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
 from typing import Optional
 
+class BaseSchema(BaseModel):
+    model_config = ConfigDict(
+        from_attributes=True,
+        alias_generator=to_camel,
+        populate_by_name=True
+    )
 
-class ServantResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+
+class ServantResponse(BaseSchema):
     id: int
     name: str
     class_name: str
@@ -17,8 +24,20 @@ class ServantResponse(BaseModel):
 
 class ServantAndName(ServantResponse):
     true_name: Optional[str] = None
-    model_config = ConfigDict(from_attributes=True)
 
+class ServantWithLocalization(ServantResponse):
+    localizations : list["LocalizationResponse"]
+
+class LocalizationResponse(BaseSchema):
+    language: str
+    name: Optional[str]
+    description: Optional[str]
+    history: Optional[str]
+    prototype_person: Optional[str]
+    illustrator: Optional[str]
+    voice_actor: Optional[str]
+    temper: Optional[str]
+    intro: Optional[str]
 
 class ServantUpdate(BaseModel):
     name: Optional[str] = None

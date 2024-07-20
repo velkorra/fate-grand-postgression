@@ -4,7 +4,7 @@ from fastapi import FastAPI, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 import uvicorn
 from .crud import *
-from .database import SessionLocal, Base
+from .database import SessionLocal, Base, get_db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from .schemas import *
@@ -28,10 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
 
 # @app.get('/sql')
 # async def root():
@@ -101,43 +97,44 @@ async def root(db : Session = Depends(get_db)):
 
 
 # Servants API -----------------------------------------------------
-@app.get('/servants')
-async def root(db : AsyncSession = Depends(get_db)):
+@app.get('/servants', response_model=List[ServantResponse])
+async def get_all_servants(db: AsyncSession = Depends(get_db)):
     service = ServantService(db)
     servants = await service.get_all()
+    return list(map(ServantResponse.model_validate, servants))
+
+@app.get('/servants_list')
+async def get_servant_list(db: AsyncSession = Depends(get_db)):
+    service = ServantService(db)
+    servants = await service.get_servant_list()
     return servants
 
-@app.get('/servants_list/{lang}')
-async def root(lang: str ,db : AsyncSession = Depends(get_db)):
-    service = ServantService(db)
-    servants = await service.get_servant_list(lang)
-    return servants
 @app.get('/servants')
-async def root(db : AsyncSession = Depends(get_db)):
+async def get_all_servants(db: AsyncSession = Depends(get_db)):
     service = ServantService(db)
     servants = await service.get_all()
     return servants
 
 
 @app.get('/servants/{servant_id}')
-async def root(servant_id : int, db : Session = Depends(get_db)):
+async def get_servant(servant_id: int, db: Session = Depends(get_db)):
     service = ServantService(db)
     servant = await service.get(servant_id)
     return servant
 
-        
+
 @app.post('/servants')
-async def root(servant : ServantCreate, db : Session = Depends(get_db)):
+async def create_servant(servant: ServantCreate, db: Session = Depends(get_db)):
     service = ServantService(db)
     try:
         servant = service.create(servant)
-        
         return {"message": f"Created {servant}", "id": servant.id}
     except ValueError as e:
         raise HTTPException(400, str(e))
-    
+
+
 @app.put('/servants/{servant_id}')
-async def root(servant_id : int, name: str = Form(...), alignment : str = Form(...), class_name : str = Form(...), gender : str = Form(...), db : Session = Depends(get_db)):
+async def update_servant(servant_id: int, name: str = Form(...), alignment: str = Form(...), class_name: str = Form(...), gender: str = Form(...), db: Session = Depends(get_db)):
     service = ServantService(db)
     try:
         servant = service.update(servant_id, ServantUpdate(name=name, alignment=alignment, class_name=class_name, gender=gender))
@@ -145,16 +142,18 @@ async def root(servant_id : int, name: str = Form(...), alignment : str = Form(.
     except ValueError as e:
         raise HTTPException(400, str(e))
 
+
 @app.delete("/servants/{servant_id}")
-async def root(servant_id : int, db : Session = Depends(get_db)):
+async def delete_servant(servant_id: int, db: Session = Depends(get_db)):
     s = ServantService(db)
     try:
         s.delete(servant_id)
     except ValueError as e:
         raise HTTPException(404, str(e))
 
+
 @app.get("/name/{servant_id}/{language}")
-async def root(servant_id : int, language : str, db : Session = Depends(get_db)):
+async def get_servant_name(servant_id: int, language: str, db: Session = Depends(get_db)):
     service = ServantService(db)
     name = await service.get_name(servant_id, language)
     if name:
@@ -255,7 +254,7 @@ async def root(servant_id : int, master_id: int, db : Session = Depends(get_db))
 @app.get("/np/all")
 async def root(db : Session = Depends(get_db)):
     service = ServantService(db)
-    return service.get_all_np()
+    return await service.get_all_np()
 
 @app.put("/np")
 async def updateNP(noble_phantasm : NoblePhantasmUpdate, db : Session = Depends(get_db)):
@@ -389,7 +388,7 @@ async def add_image(servant_id : int, file : UploadFile = File(...), db: Session
     picture : ServantPicture = service.add_picture(servant.id, 1, saved_path)
     message = {"id": picture.servant_id, "grade": picture.grade, "image": picture.picture}
     return message
-@app.get("/get_image/")
+@app.get("/get_image")
 async def get_image(servant_id : int, grade: int, db: Session = Depends(get_db)):
     service = ServantService(db)
     try:
