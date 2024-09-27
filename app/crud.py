@@ -1,6 +1,13 @@
 from sqlalchemy import and_, func
 from sqlalchemy.future import select
-from sqlalchemy.orm import Session, aliased, selectinload, load_only, joinedload, subqueryload
+from sqlalchemy.orm import (
+    Session,
+    aliased,
+    selectinload,
+    load_only,
+    joinedload,
+    subqueryload,
+)
 from sqlalchemy.exc import IntegrityError, DataError, InternalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from psycopg2.errors import (
@@ -31,42 +38,14 @@ class ServantService:
         servants = (await self.db.execute(query)).scalars().all()
         return servants
 
-    # async def get_servant_list(self, lang) -> List[ServantAndName]:
-    #     query = (
-    #         select(Servant)
-    #         .options(
-    #             load_only(
-    #                 Servant.id,
-    #                 Servant.class_name,
-    #                 Servant.name,
-    #                 Servant.ascension_level,
-    #                 Servant.level,
-    #                 Servant.state,
-    #                 Servant.alignment,
-    #                 Servant.gender,
-    #             ),
-    #             selectinload(Servant.localizations).load_only(
-    #                 ServantLocalization.language, ServantLocalization.name
-    #             ),
-    #         )
-    #         .where(Servant.localizations.any(language=lang))
-    #     )
-    #     servants = (await self.db.execute(query)).scalars().all()
-    #     response = []
-    #     for servant in servants:
-    #         s = ServantAndName.model_validate(servant)
-    #         for localization in servant.localizations:
-    #             if localization.language == lang:
-    #                 s.true_name = localization.name
-    #         response.append(s)
-    #     return response
-
     async def get_servant_list(self) -> List[ServantWithLocalization]:
-        query = select(Servant).options(subqueryload(Servant.localizations)).order_by(Servant.id)
+        query = (
+            select(Servant)
+            .options(subqueryload(Servant.localizations))
+            .order_by(Servant.id)
+        )
         servants = (await self.db.execute(query)).scalars().all()
         return list(map(ServantWithLocalization.model_validate, servants))
-            
-
 
     async def get_details(self, id: int):
         servant = await self.get(id)
@@ -117,21 +96,11 @@ class ServantService:
         await self.db.commit()
 
     async def update_localization(
-        self,
-        language: str,
-        servant_id: str,
-        name: str = None,
-        description: str = None,
-        history: str = None,
-        prototype_person: str = None,
-        illustrator: str = None,
-        voice_actor: str = None,
-        temper: str = None,
-        intro: str = None,
+        self, language: str, servant_id: str, localization: LocalizationResponse
     ):
         query = select(ServantLocalization).where(
-            (ServantLocalization.servant_id == servant_id) &
-            (ServantLocalization.language == language)
+            (ServantLocalization.servant_id == servant_id)
+            & (ServantLocalization.language == language)
         )
         details = (await self.db.execute(query)).scalars().first()
         dd = True
@@ -140,22 +109,22 @@ class ServantService:
             details = ServantLocalization()
         if language:
             details.language = language
-        if name:
-            details.name = name
-        if description:
-            details.description = description
-        if history:
-            details.history = history
-        if prototype_person:
-            details.prototype_person = prototype_person
-        if illustrator:
-            details.illustrator = illustrator
-        if voice_actor:
-            details.voice_actor = voice_actor
-        if temper:
-            details.temper = temper
-        if intro:
-            details.intro = intro
+        if localization.name:
+            details.name = localization.name
+        if localization.description:
+            details.description = localization.description
+        if localization.history:
+            details.history = localization.history
+        if localization.prototype_person:
+            details.prototype_person = localization.prototype_person
+        if localization.illustrator:
+            details.illustrator = localization.illustrator
+        if localization.voice_actor:
+            details.voice_actor = localization.voice_actor
+        if localization.temper:
+            details.temper = localization.temper
+        if localization.intro:
+            details.intro = localization.intro
         if not dd:
             details.servant_id = servant_id
             self.db.add(details)
@@ -175,15 +144,19 @@ class ServantService:
         np_list = (await self.db.execute(query)).scalars().all()
         return np_list
 
-    def update_np(self, np: NoblePhantasmUpdate):
-        updated_np: NoblePhantasm = self.db.query(NoblePhantasm).get(np.servant_id)
+    async def get_np(self, id: int) -> NoblePhantasm:
+        query = select(NoblePhantasm).where(NoblePhantasm.servant_id == id)
+        return (await self.db.execute(query)).scalars().first()
+
+    async def update_np(self, np: NoblePhantasmUpdate):
+        updated_np = await self.get_np(np.servant_id)
         updated_np.activation_type = np.activation_type
         updated_np.description = np.description
         updated_np.name = np.name
         updated_np.rank = np.rank
-        self.db.commit()
+        await self.db.commit()
 
-    def create_np(self, np: NoblePhantasmUpdate):
+    async def create_np(self, np: NoblePhantasmUpdate):
         new_np = NoblePhantasm(
             servant_id=np.servant_id,
             activation_type=np.activation_type,
@@ -192,17 +165,23 @@ class ServantService:
             rank=np.rank,
         )
         self.db.add(new_np)
-        self.db.commit()
+        await self.db.commit()
 
-    def update_skill(self, skill: SkillSchema):
-        updated_skill: Skill = self.db.query(Skill).get(skill.id)
+    async def delete_np(self, id):
+        np = await self.get_np(id)
+        await self.db.delete(np)
+        await self.db.commit()
+
+    async def update_skill(self, skill: SkillSchema):
+        query = select(Skill).where(Skill.id == skill.id)
+        updated_skill = (await self.db.execute(query)).scalars().first()
         updated_skill.name = skill.name
         updated_skill.description = skill.description
         updated_skill.rank = skill.rank
         updated_skill.skill_type = skill.skill_type
-        self.db.commit()
+        await self.db.commit()
 
-    def create_skill(self, skill: SkillSchema):
+    async def create_skill(self, skill: SkillSchema):
         new_skill = Skill(
             name=skill.name,
             description=skill.description,
@@ -210,9 +189,9 @@ class ServantService:
             skill_type=skill.skill_type,
         )
         self.db.add(new_skill)
-        self.db.commit()
+        await self.db.commit()
 
-    def create(self, servant: ServantCreate) -> Servant:
+    async def create(self, servant: ServantCreate) -> Servant:
         servant = Servant(
             name=servant.name,
             class_name=servant.class_name,
@@ -221,8 +200,8 @@ class ServantService:
         )
         try:
             self.db.add(servant)
-            self.db.commit()
-            self.db.refresh(servant)
+            await self.db.commit()
+            await self.db.refresh(servant)
             return servant
         except IntegrityError as e:
             self.db.rollback()
@@ -231,8 +210,8 @@ class ServantService:
             self.db.rollback()
             raise ValueError("Invalid data: " + str(e.orig)) from e
 
-    def update(self, id: int, s: ServantUpdate):
-        servant = self.get(id)
+    async def update(self, id: int, s: ServantUpdate):
+        servant = await self.get(id)
         if s.name:
             servant.name = s.name
         if s.class_name:
@@ -246,24 +225,23 @@ class ServantService:
         if s.gender:
             servant.gender = s.gender
         try:
-            self.db.commit()
-            self.db.refresh(servant)
+            await self.db.commit()
+            await self.db.refresh(servant)
             return servant
         except IntegrityError as e:
-            self.db.rollback()
+            await self.db.rollback()
             raise ValueError(str(e))
         except Exception as e:
-            self.db.rollback()
+            await self.db.rollback()
             raise ValueError(str(e))
 
-    def delete(self, id: int):
-        servant = self.get(id)
+    async def delete(self, id: int):
+        servant = await self.get(id)
         if servant:
-            self.db.delete(servant)
-            self.db.commit()
+            await self.db.delete(servant)
+            await self.db.commit()
         else:
             raise ValueError("Servant does not exist")
-
 
     def get_localizaions(self):
         return (
@@ -278,39 +256,41 @@ class ServantService:
             .all()
         )
 
-
-    def get_skills(self, id: int):
-        servant = self.get(id)
+    async def get_skills(self, id: int):
+        servant = await self.get(id)
         return servant.skills
 
-    def get_skill(self, id: int) -> Skill:
-        return self.db.query(Skill).get(id)
+    async def get_skill(self, id: int):
+        query = select(Skill).where(Skill.id == id)
+        return (await self.db.execute(query)).scalars().first()
 
-    def get_all_skills(self):
-        return self.db.query(Skill).all()
+    async def get_all_skills(self):
+        query = select(Skill)
+        return (await self.db.execute(query)).scalars().all()
 
-    def delete_skill(self, id):
-        skill = self.db.query(Skill).get(id)
-        self.db.delete(skill)
-        self.db.commit()
+    async def delete_skill(self, id):
+        skill = self.get(id)
+        await self.db.delete(skill)
+        await self.db.commit()
 
-    def add_skill_picture(self, id, path):
-        skill: Skill = self.db.query(Skill).get(id)
+    async def add_skill_picture(self, id, path):
+        skill = await self.get_skill(id)
         skill.icon = path
-        self.db.commit()
+        await self.db.commit()
 
-    def get_skill_icon(self, id):
-        skill: Skill = self.db.query(Skill).get(id)
+    async def get_skill_icon(self, id):
+        skill = await self.get_skill(id)
         return skill.icon
 
-    def add_picture(self, servant_id: int, grade: int, path: str):
+    async def add_picture(self, servant_id: int, grade: int, path: str):
         new_picture = ServantPicture(grade=1, picture=path)
-        servant = self.get(servant_id)
+        servant = await self.get(servant_id)
         servant.pictures.append(new_picture)
         try:
-            self.db.commit()
+            await self.db.commit()
             return new_picture
         except Exception as e:
+            await self.db.rollback()
             raise e
 
     async def get_picture(self, servant_id: int, grade: int):
@@ -323,7 +303,7 @@ class ServantService:
         else:
             raise ValueError("no picture")
 
-    def get_level_analys(self):
+    async def get_level_analys(self):
         return (
             self.db.query(
                 Servant.class_name,
@@ -420,7 +400,7 @@ class MasterService:
         query = select(Master)
         return (await self.db.execute(query)).scalars().all()
 
-    def create(self, master: MasterCreate):
+    async def create(self, master: MasterCreate):
         new_master = Master(
             nickname=master.nickname,
             display_name=(
@@ -429,20 +409,20 @@ class MasterService:
         )
         self.db.add(new_master)
         try:
-            self.db.commit()
-            self.db.refresh(new_master)
+            await self.db.commit()
+            await self.db.refresh(new_master)
             return new_master
         except IntegrityError as e:
-            self.db.rollback()
+            await self.db.rollback()
             if isinstance(e.orig, UniqueViolation):
                 raise ValueError("Master with this nickname already exists")
 
         except Exception as e:
-            self.db.rollback()
+            await self.db.rollback()
             raise Exception(str(e))
 
-    def update(self, id: int, master: MasterUpdate):
-        m = self.get(id)
+    async def update(self, id: int, master: MasterUpdate):
+        m = await self.get(id)
         if not m:
             raise ValueError("master does not exist")
         if master.nickname:
@@ -462,54 +442,51 @@ class MasterService:
             if isinstance(e.orig, CheckViolation):
                 raise ValueError("Level must be positive")
 
-    def delete(self, id: int):
-        m = self.get(id)
+    async def delete(self, id: int):
+        m = await self.get(id)
         if not m:
             raise ValueError("master does not exist")
-        self.db.delete(m)
-        self.db.commit()
+        await self.db.delete(m)
+        await self.db.commit()
 
     async def get_active_contracts_count(self, master_id):
         query = select(Contract).where(
-            (Contract.master_id == master_id) & 
-            (Contract.status == "active")
+            (Contract.master_id == master_id) & (Contract.status == "active")
         )
         c = (await self.db.execute(query)).scalars().all()
         return len(c)
 
 
 class ContractService:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def get(self, servant_id, master_id):
-        return self.db.query(Contract).filter(
-            Contract.servant_id == servant_id and Contract.master_id == master_id
+    async def get(self, servant_id, master_id):
+        query = select(Contract).where(
+            Contract.master_id == master_id & Contract.servant_id == servant_id
         )
+        return (await self.db.execute(query)).scalars().first()
 
-    def get_all(self):
-        return self.db.query(Contract).all()
+    async def get_all(self):
+        query = select(Contract)
+        return (await self.db.execute(query)).scalars().all()
 
-    def delete(self, servant_id, master_id):
-        contract = (
-            self.db.query(Contract)
-            .filter(Contract.servant_id == servant_id, Contract.master_id == master_id)
-            .first()
-        )
-        self.db.delete(contract)
-        self.db.commit()
+    async def delete(self, servant_id, master_id):
+        contract = await self.get(servant_id=servant_id, master_id=master_id)
+        await self.db.delete(contract)
+        await self.db.commit()
 
-    def create(self, contract_create: ContractCreate):
+    async def create(self, contract_create: ContractCreate):
         contract = Contract(
             servant_id=contract_create.servant_id, master_id=contract_create.master_id
         )
         self.db.add(contract)
         try:
-            self.db.commit()
-            self.db.refresh(contract)
+            await self.db.commit()
+            await self.db.refresh(contract)
             return contract
         except IntegrityError as e:
-            self.db.rollback()
+            await self.db.rollback()
             if isinstance(e.orig, UniqueViolation):
                 raise ValueError("Contract already exist")
             if isinstance(e.orig, ForeignKeyViolation):
@@ -518,6 +495,6 @@ class ContractService:
                 else:
                     raise ValueError("Servant does not exist")
         except InternalError as e:
-            self.db.rollback()
+            await self.db.rollback()
             if isinstance(e.orig, RaiseException):
                 raise ValueError("Servant already has an active contract")

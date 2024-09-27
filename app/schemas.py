@@ -28,6 +28,7 @@ class ServantAndName(ServantResponse):
 class ServantWithLocalization(ServantResponse):
     localizations : list["LocalizationResponse"]
 
+
 class LocalizationResponse(BaseSchema):
     language: str
     name: Optional[str]
@@ -39,7 +40,7 @@ class LocalizationResponse(BaseSchema):
     temper: Optional[str]
     intro: Optional[str]
 
-class ServantUpdate(BaseModel):
+class ServantUpdate(BaseSchema):
     name: Optional[str] = None
     class_name: Optional[str] = None
     ascension_level: Optional[int] = None
@@ -80,14 +81,6 @@ class ContractUpdate(BaseModel):
 class CreatePicture(BaseModel):
     grade: int
     picture: UploadFile
-
-
-class ServantWithPicture(BaseModel):
-    name: str = Form(...)
-    class_name: str = Form(...)
-    gender: str = Form(...)
-    alignment: str = Form(...)
-    file: UploadFile = File(...)
 
 
 class NoblePhantasmUpdate(BaseModel):

@@ -10,21 +10,18 @@ class FormatLog(logging.Filter):
         return '[raw sql]' not in record
 
 
+log_path = os.getenv('LOG_PATH', '/tmp/sqlalchemy.log')
+
 logging.basicConfig(
-    filename='sqlalchemy.log',  # имя файла, куда будет записан лог
- # уровень логирования
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # форматирование сообщений
+    filename=log_path,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 
-load_dotenv()
-
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-# engine = create_engine(DATABASE_URL)
-# SessionLocal = sessionmaker(bind=engine)
-
+# load_dotenv()
+DATABASE_URL = os.environ.get('DATABASE_URL')
+# DATABASE_URL = os.getenv('DATABASE_URL')
 
 class Base(DeclarativeBase):
     def _repr(self, *fields):
