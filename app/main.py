@@ -13,15 +13,10 @@ from .utils import SKILL_DIR, save_file_to_disk, MEDIA_DIR
 
 app = FastAPI()
 
-origins = [
-    "https://d0jzr844-3000.euw.devtunnels.ms",
-    "https://velkorra.github.io",
-    "http://localhost:3000",
-    "http://localhost:8080",
-    "https://1pqzvstl-3000.euw.devtunnels.ms/",
-    "http://localhost:4200"
-]
 origin = os.environ.get("ORIGIN")
+origins = [
+    origin
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
