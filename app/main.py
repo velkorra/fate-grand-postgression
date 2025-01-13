@@ -21,7 +21,7 @@ origins = [
     "https://1pqzvstl-3000.euw.devtunnels.ms/",
     "http://localhost:4200"
 ]
-
+origin = os.environ.get("ORIGIN")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
