@@ -2,8 +2,9 @@ import os
 import shutil
 from pathlib import Path
 
-MEDIA_DIR = Path("media") / "servants"
-SKILL_DIR = Path("media") / "skills"
+MEDIA_DIR = Path(os.environ.get("MEDIA_DIR")) / "servants"
+SKILL_DIR = Path(os.environ.get("MEDIA_DIR")) / "skills"
+print(MEDIA_DIR)
 os.makedirs(MEDIA_DIR, exist_ok=True)
 os.makedirs(SKILL_DIR, exist_ok=True)
 
